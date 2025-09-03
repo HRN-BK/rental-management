@@ -42,8 +42,12 @@ export async function POST(request: NextRequest) {
     let browser
     
     if (isProduction) {
-      // Production config for Vercel - simplified approach
+      console.log('Production environment detected, using chromium')
+      
       try {
+        const executablePath = await chromium.executablePath()
+        console.log('Chromium executable path:', executablePath)
+        
         browser = await puppeteerCore.launch({
           args: [
             '--no-sandbox',
@@ -54,27 +58,58 @@ export async function POST(request: NextRequest) {
             '--no-zygote',
             '--disable-gpu',
             '--single-process',
-            '--disable-web-security'
+            '--disable-web-security',
+            '--disable-features=VizDisplayCompositor'
           ],
           defaultViewport: { width: 1280, height: 720 },
-          executablePath: await chromium.executablePath(),
+          executablePath,
           headless: true,
           ignoreHTTPSErrors: true,
         })
+        console.log('Browser launched successfully with chromium')
+        
       } catch (chromiumError) {
-        console.log('Chromium launch failed, trying with system Chrome:', chromiumError)
-        // Fallback to system Chrome if available
-        browser = await puppeteerCore.launch({
-          args: [
-            '--no-sandbox',
-            '--disable-setuid-sandbox',
-            '--disable-dev-shm-usage',
-            '--disable-gpu',
-            '--single-process'
-          ],
-          headless: true,
-          ignoreHTTPSErrors: true,
-        })
+        console.error('Chromium launch failed:', chromiumError)
+        
+        // Try with different executable paths
+        const possiblePaths = [
+          '/usr/bin/chromium-browser',
+          '/usr/bin/chromium',
+          '/usr/bin/google-chrome-stable',
+          '/usr/bin/google-chrome',
+          '/opt/google/chrome/chrome'
+        ]
+        
+        let browserLaunched = false
+        
+        for (const execPath of possiblePaths) {
+          try {
+            console.log(`Trying executable path: ${execPath}`)
+            browser = await puppeteerCore.launch({
+              args: [
+                '--no-sandbox',
+                '--disable-setuid-sandbox',
+                '--disable-dev-shm-usage',
+                '--disable-gpu',
+                '--single-process',
+                '--disable-web-security'
+              ],
+              executablePath: execPath,
+              headless: true,
+              ignoreHTTPSErrors: true,
+            })
+            console.log(`Browser launched successfully with: ${execPath}`)
+            browserLaunched = true
+            break
+          } catch (pathError) {
+            console.log(`Failed with ${execPath}:`, pathError.message)
+            continue
+          }
+        }
+        
+        if (!browserLaunched) {
+          throw new Error(`Failed to launch browser. Chromium error: ${chromiumError.message}. No fallback executables found.`)
+        }
       }
     } else {
       // Development config
