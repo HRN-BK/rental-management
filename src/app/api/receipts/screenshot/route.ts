@@ -39,25 +39,51 @@ export async function POST(request: NextRequest) {
     // Launch browser - different config for local vs production
     const isProduction = process.env.NODE_ENV === 'production'
     
-    const browser = await puppeteer.launch({
-      args: isProduction 
-        ? chromium.args 
-        : [
-            '--no-sandbox',
-            '--disable-setuid-sandbox',
-            '--disable-dev-shm-usage',
-            '--disable-accelerated-2d-canvas',
-            '--no-first-run',
-            '--no-zygote',
-            '--disable-gpu',
-          ],
-      defaultViewport: chromium.defaultViewport,
-      executablePath: isProduction 
-        ? await chromium.executablePath() 
-        : puppeteer.executablePath?.() || undefined,
-      headless: chromium.headless || true,
-      ignoreHTTPSErrors: true,
-    })
+    let browser
+    
+    if (isProduction) {
+      // Production config for Vercel - simpler approach
+      const executablePath = await chromium.executablePath()
+      
+      browser = await puppeteer.launch({
+        args: [
+          '--no-sandbox',
+          '--disable-setuid-sandbox', 
+          '--disable-dev-shm-usage',
+          '--disable-accelerated-2d-canvas',
+          '--no-first-run',
+          '--no-zygote',
+          '--disable-gpu',
+          '--hide-scrollbars',
+          '--disable-web-security',
+          '--disable-features=VizDisplayCompositor',
+          '--disable-extensions',
+          '--disable-plugins',
+          '--single-process'
+        ],
+        defaultViewport: { width: 1280, height: 720 },
+        executablePath,
+        headless: true,
+        ignoreHTTPSErrors: true,
+      })
+    } else {
+      // Development config
+      browser = await puppeteer.launch({
+        args: [
+          '--no-sandbox',
+          '--disable-setuid-sandbox',
+          '--disable-dev-shm-usage',
+          '--disable-accelerated-2d-canvas',
+          '--no-first-run',
+          '--no-zygote',
+          '--disable-gpu',
+          '--hide-scrollbars',
+          '--disable-web-security',
+        ],
+        headless: true,
+        ignoreHTTPSErrors: true,
+      })
+    }
 
     const page = await browser.newPage()
 
