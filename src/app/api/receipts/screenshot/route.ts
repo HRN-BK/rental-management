@@ -1,5 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { chromium } from 'playwright-chromium'
+import chromium from '@sparticuz/chromium'
+import puppeteer from 'puppeteer-core'
+
+// BẮT BUỘC: dùng Node.js runtime, không dùng edge
+export const runtime = 'nodejs'
+export const dynamic = 'force-dynamic'
 
 export async function POST(request: NextRequest) {
   try {
@@ -15,29 +20,30 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    console.log('Starting Playwright screenshot...')
+    console.log('Starting Puppeteer screenshot...')
     
-    // Launch browser with Playwright
-    const browser = await chromium.launch({
-      headless: true,
-      args: [
-        '--no-sandbox',
-        '--disable-setuid-sandbox',
-        '--disable-dev-shm-usage',
-        '--disable-gpu',
-        '--disable-web-security',
-        '--single-process'
-      ]
+    // (Tuỳ chọn) tinh chỉnh chế độ
+    chromium.setHeadlessMode = true
+    chromium.setGraphicsMode = false
+    
+    const executablePath = await chromium.executablePath()
+    
+    const browser = await puppeteer.launch({
+      args: chromium.args,
+      defaultViewport: { width: 1280, height: 800 },
+      executablePath,
+      headless: chromium.headless,
     })
     
-    console.log('Browser launched successfully with Playwright')
+    console.log('Browser launched successfully with Puppeteer + @sparticuz/chromium')
 
     const page = await browser.newPage()
 
     // Set viewport for high quality
-    await page.setViewportSize({
+    await page.setViewport({
       width: 800,
       height: 1200,
+      deviceScaleFactor: 2,
     })
 
     // Create complete HTML with styles
@@ -174,7 +180,7 @@ export async function POST(request: NextRequest) {
     `
 
     // Set content and wait for load
-    await page.setContent(fullHtml, { waitUntil: 'networkidle' })
+    await page.setContent(fullHtml, { waitUntil: 'networkidle0' })
 
     // Wait a bit more for rendering
     await new Promise(resolve => setTimeout(resolve, 1000))
@@ -192,6 +198,7 @@ export async function POST(request: NextRequest) {
           left: '20mm',
         },
         printBackground: true,
+        preferCSSPageSize: false,
       })
 
       result = {
@@ -200,11 +207,6 @@ export async function POST(request: NextRequest) {
       }
     } else {
       // Generate PNG screenshot
-      const containerHeight = await page.evaluate(() => {
-        const container = document.querySelector('.receipt-container')
-        return container ? container.scrollHeight + 40 : 1000
-      })
-      
       const screenshotBuffer = await page.screenshot({
         type: 'png',
         fullPage: false,
@@ -212,7 +214,10 @@ export async function POST(request: NextRequest) {
           x: 0,
           y: 0,
           width: 800,
-          height: containerHeight,
+          height: await page.evaluate(() => {
+            const container = document.querySelector('.receipt-container')
+            return container ? container.scrollHeight + 40 : 1000
+          }),
         },
       })
 
