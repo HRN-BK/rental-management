@@ -22,29 +22,19 @@ export async function POST(request: NextRequest) {
 
     console.log('Starting Puppeteer screenshot...')
     
-    let browser
-    try {
-      const executablePath = await chromium.executablePath()
-      console.log('Chromium executable path:', executablePath)
-      
-      browser = await puppeteer.launch({
-        args: [
-          '--no-sandbox',
-          '--disable-setuid-sandbox',
-          '--disable-dev-shm-usage',
-          '--disable-gpu',
-          '--single-process',
-          '--no-zygote'
-        ],
-        defaultViewport: chromium.defaultViewport,
-        executablePath,
-        headless: true,
-        ignoreHTTPSErrors: true,
-      })
-    } catch (error) {
-      console.error('Failed to launch with @sparticuz/chromium:', error)
-      throw new Error(`Chromium launch failed: ${error.message}`)
-    }
+    // Cấu hình theo best practice
+    chromium.setHeadlessMode = true
+    chromium.setGraphicsMode = false
+    
+    const executablePath = await chromium.executablePath()
+    console.log('Chromium executable path:', executablePath)
+    
+    const browser = await puppeteer.launch({
+      args: chromium.args,                    // QUAN TRỌNG: dùng args của @sparticuz/chromium
+      defaultViewport: { width: 1280, height: 800 },
+      executablePath,                        // QUAN TRỌNG: dùng binary của @sparticuz/chromium
+      headless: chromium.headless,
+    })
     
     console.log('Browser launched successfully with Puppeteer + @sparticuz/chromium')
 
@@ -190,9 +180,12 @@ export async function POST(request: NextRequest) {
       </html>
     `
 
-    // Set content and wait for load
-    await page.setContent(fullHtml, { waitUntil: 'networkidle0' })
-
+    // Set content and wait for load  
+    await page.setContent(fullHtml, { waitUntil: 'networkidle0', timeout: 120_000 })
+    
+    // Đảm bảo fonts đã load xong
+    await page.evaluate(() => (document as any).fonts?.ready ?? Promise.resolve())
+    
     // Wait a bit more for rendering
     await new Promise(resolve => setTimeout(resolve, 1000))
 
