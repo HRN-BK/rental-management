@@ -65,7 +65,7 @@ export function MobileTenants({
   }
 
   return (
-    <div className="md:hidden flex flex-col min-h-screen bg-gray-50 dark:bg-gray-900 pb-20">
+    <div className="md:hidden flex flex-col min-h-screen bg-gray-50 dark:bg-gray-900 pb-16">
       {/* Pull to Refresh Indicator */}
       {(isPulling || isRefreshing) && (
         <div
@@ -212,42 +212,6 @@ export function MobileTenants({
         )}
       </div>
 
-      {/* Fixed Bottom Actions */}
-      <div className="fixed bottom-0 left-0 right-0 bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-700 p-4 z-50">
-        <div className="grid grid-cols-3 gap-3">
-          {/* Add Tenant Button */}
-          <Button 
-            className="flex flex-col items-center gap-1 h-14 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white"
-            onClick={() => console.log('Add tenant')}
-          >
-            <Plus className="w-5 h-5" />
-            <span className="text-xs font-medium">Thêm mới</span>
-          </Button>
-          
-          {/* Refresh Button */}
-          <Button 
-            variant="outline"
-            className="flex flex-col items-center gap-1 h-14 border-2 border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-800"
-            onClick={onRefresh}
-          >
-            <RefreshCw className="w-5 h-5" />
-            <span className="text-xs font-medium">Làm mới</span>
-          </Button>
-          
-          {/* Filter/Sort Button */}
-          <Button 
-            variant="outline"
-            className="flex flex-col items-center gap-1 h-14 border-2 border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-800"
-            onClick={() => setIsFilterOpen(true)}
-          >
-            <Filter className="w-5 h-5" />
-            <span className="text-xs font-medium">Bộ lọc</span>
-            {statusFilter !== 'all' && (
-              <div className="absolute -top-1 -right-1 w-3 h-3 bg-blue-600 rounded-full" />
-            )}
-          </Button>
-        </div>
-      </div>
     </div>
   )
 }
@@ -424,7 +388,7 @@ function MobileTenantCard({
 
 function MobileTenantsSkeleton() {
   return (
-    <div className="md:hidden flex flex-col min-h-screen bg-gray-50 dark:bg-gray-900 pb-20">
+    <div className="md:hidden flex flex-col min-h-screen bg-gray-50 dark:bg-gray-900 pb-16">
       {/* Header Skeleton */}
       <div className="bg-white dark:bg-gray-900 border-b p-4 pt-12">
         <div className="animate-pulse">

@@ -7,6 +7,9 @@ export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 
 export async function POST(request: NextRequest) {
+  let browser = null
+  let page = null
+  
   try {
     const { receiptHtml, format = 'png', filename } = await request.json()
 
@@ -22,23 +25,62 @@ export async function POST(request: NextRequest) {
 
     console.log('Starting Puppeteer screenshot...')
     
-    // Cấu hình theo best practice
-    chromium.setHeadlessMode = true
-    chromium.setGraphicsMode = false
-    
+    // Cấu hình tối ưu cho Vercel serverless
+    const isProduction = process.env.NODE_ENV === 'production'
     const executablePath = await chromium.executablePath()
     console.log('Chromium executable path:', executablePath)
+    console.log('Environment:', process.env.NODE_ENV)
     
-    const browser = await puppeteer.launch({
-      args: chromium.args,                    // QUAN TRỌNG: dùng args của @sparticuz/chromium
+    // Args tối ưu cho AWS Lambda/Vercel
+    const launchArgs = [
+      ...chromium.args,
+      '--disable-gpu',
+      '--disable-dev-shm-usage',
+      '--disable-setuid-sandbox',
+      '--no-first-run',
+      '--no-sandbox',
+      '--no-zygote',
+      '--single-process',
+      '--disable-extensions',
+      '--disable-background-timer-throttling',
+      '--disable-backgrounding-occluded-windows',
+      '--disable-renderer-backgrounding',
+      '--disable-web-security',
+      '--disable-features=TranslateUI',
+      '--disable-ipc-flooding-protection',
+      '--memory-pressure-off',
+      '--max_old_space_size=4096',
+    ]
+    
+    browser = await puppeteer.launch({
+      args: launchArgs,
       defaultViewport: { width: 1280, height: 800 },
-      executablePath,                        // QUAN TRỌNG: dùng binary của @sparticuz/chromium
-      headless: chromium.headless,
+      executablePath: isProduction ? executablePath : undefined,
+      headless: true,
+      timeout: 60000, // 60s timeout cho cold start
     })
     
     console.log('Browser launched successfully with Puppeteer + @sparticuz/chromium')
 
-    const page = await browser.newPage()
+    page = await browser.newPage()
+      
+      // Tối ưu hóa trang để giảm memory usage
+      await page.setCacheEnabled(false)
+      await page.setJavaScriptEnabled(true)
+      
+      // Disable chỉ external images để tăng tốc độ, giữ lại CSS
+      await page.setRequestInterception(true)
+      page.on('request', (req) => {
+        const resourceType = req.resourceType()
+        const url = req.url()
+        
+        // Chỉ block external images và scripts không cần thiết
+        if (resourceType === 'image' && !url.startsWith('data:')) {
+          req.abort()
+        } else {
+          req.continue()
+        }
+      })
 
     // Set viewport for high quality
     await page.setViewport({
@@ -180,14 +222,24 @@ export async function POST(request: NextRequest) {
       </html>
     `
 
-    // Set content and wait for load  
-    await page.setContent(fullHtml, { waitUntil: 'networkidle0', timeout: 120_000 })
+    // Set content và đợi load tối ưu cho serverless
+    await page.setContent(fullHtml, { 
+      waitUntil: 'domcontentloaded', // Thay vì networkidle0 để nhanh hơn
+      timeout: 30_000 // Giảm xuống 30s
+    })
     
-    // Đảm bảo fonts đã load xong
-    await page.evaluate(() => (document as any).fonts?.ready ?? Promise.resolve())
+    // Đảm bảo fonts đã load xong với timeout
+    try {
+      await Promise.race([
+        page.evaluate(() => (document as any).fonts?.ready ?? Promise.resolve()),
+        new Promise(resolve => setTimeout(resolve, 3000)) // Max 3s cho fonts
+      ])
+    } catch (error) {
+      console.warn('Font loading timeout, continuing...', error)
+    }
     
-    // Wait a bit more for rendering
-    await new Promise(resolve => setTimeout(resolve, 1000))
+    // Wait tối thiểu cho rendering
+    await new Promise(resolve => setTimeout(resolve, 500))
 
     let result
 
@@ -231,8 +283,6 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    await browser.close()
-
     console.log('Screenshot completed successfully')
 
     return NextResponse.json({
@@ -242,14 +292,48 @@ export async function POST(request: NextRequest) {
       filename: filename || `receipt-${Date.now()}.${format}`,
     })
   } catch (error) {
-    console.error('Screenshot error:', error)
+    console.error('Screenshot error details:', {
+      message: error instanceof Error ? error.message : String(error),
+      stack: error instanceof Error ? error.stack : undefined,
+      name: error instanceof Error ? error.name : undefined,
+      environment: process.env.NODE_ENV,
+      vercel: !!process.env.VERCEL,
+    })
+    
+    // Lỗi phổ biến và gợi ý giải pháp
+    let errorMessage = error instanceof Error ? error.message : 'Unknown error occurred'
+    
+    if (errorMessage.includes('Could not find Chromium')) {
+      errorMessage = 'Chromium binary not found. Please check @sparticuz/chromium installation.'
+    } else if (errorMessage.includes('Navigation timeout')) {
+      errorMessage = 'Page load timeout. The content may be too complex or network issues.'
+    } else if (errorMessage.includes('Protocol error')) {
+      errorMessage = 'Browser communication error. This may be due to memory constraints.'
+    }
+    
     return NextResponse.json(
       {
         success: false,
-        error:
-          error instanceof Error ? error.message : 'Unknown error occurred',
+        error: errorMessage,
+        debug: process.env.NODE_ENV === 'development' ? {
+          originalError: error instanceof Error ? error.message : String(error),
+          stack: error instanceof Error ? error.stack : undefined
+        } : undefined
       },
       { status: 500 }
     )
+  } finally {
+    // Đảm bảo cleanup bất kể trường hợp nào
+    try {
+      if (page) {
+        await page.close()
+      }
+      if (browser) {
+        await browser.close()
+        console.log('Browser cleanup completed')
+      }
+    } catch (cleanupError) {
+      console.error('Cleanup error:', cleanupError)
+    }
   }
 }

@@ -63,8 +63,12 @@ const nextConfig: NextConfig = {
     },
   },
 
-  // Server external packages
-  serverExternalPackages: ['puppeteer', 'sharp'],
+  // Server external packages - quan trọng cho Puppeteer trên Vercel
+  serverExternalPackages: [
+    'puppeteer-core', 
+    '@sparticuz/chromium',
+    'sharp'
+  ],
 
   // Experimental features
   experimental: {
