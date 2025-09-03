@@ -1,5 +1,21 @@
 import { NextRequest, NextResponse } from 'next/server'
-import puppeteer from 'puppeteer'
+import puppeteerCore from 'puppeteer-core'
+import chromium from '@sparticuz/chromium'
+
+// Dynamic import for local development
+const getPuppeteer = async () => {
+  if (process.env.NODE_ENV === 'production') {
+    return puppeteerCore
+  }
+  // For development, try to use regular puppeteer first
+  try {
+    const puppeteer = await import('puppeteer')
+    return puppeteer.default
+  } catch (error) {
+    console.log('Falling back to puppeteer-core for development')
+    return puppeteerCore
+  }
+}
 
 export async function POST(request: NextRequest) {
   try {
@@ -17,18 +33,31 @@ export async function POST(request: NextRequest) {
 
     console.log('Starting Puppeteer screenshot...')
 
-    // Launch browser
+    // Get puppeteer instance
+    const puppeteer = await getPuppeteer()
+    
+    // Launch browser - different config for local vs production
+    const isProduction = process.env.NODE_ENV === 'production'
+    
     const browser = await puppeteer.launch({
-      headless: true,
-      args: [
-        '--no-sandbox',
-        '--disable-setuid-sandbox',
-        '--disable-dev-shm-usage',
-        '--disable-accelerated-2d-canvas',
-        '--no-first-run',
-        '--no-zygote',
-        '--disable-gpu',
-      ],
+      args: isProduction 
+        ? chromium.args 
+        : [
+            '--no-sandbox',
+            '--disable-setuid-sandbox',
+            '--disable-dev-shm-usage',
+            '--disable-accelerated-2d-canvas',
+            '--no-first-run',
+            '--no-zygote',
+            '--disable-gpu',
+          ],
+      defaultViewport: chromium.defaultViewport,
+      executablePath: isProduction 
+        ? await chromium.executablePath() 
+        : puppeteer.executablePath?.() || undefined,
+      headless: chromium.headless || true,
+      ignoreHTTPSErrors: true,
+    })
     })
 
     const page = await browser.newPage()
