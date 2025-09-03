@@ -22,18 +22,29 @@ export async function POST(request: NextRequest) {
 
     console.log('Starting Puppeteer screenshot...')
     
-    // (Tuỳ chọn) tinh chỉnh chế độ
-    chromium.setHeadlessMode = true
-    chromium.setGraphicsMode = false
-    
-    const executablePath = await chromium.executablePath()
-    
-    const browser = await puppeteer.launch({
-      args: chromium.args,
-      defaultViewport: { width: 1280, height: 800 },
-      executablePath,
-      headless: chromium.headless,
-    })
+    let browser
+    try {
+      const executablePath = await chromium.executablePath()
+      console.log('Chromium executable path:', executablePath)
+      
+      browser = await puppeteer.launch({
+        args: [
+          '--no-sandbox',
+          '--disable-setuid-sandbox',
+          '--disable-dev-shm-usage',
+          '--disable-gpu',
+          '--single-process',
+          '--no-zygote'
+        ],
+        defaultViewport: chromium.defaultViewport,
+        executablePath,
+        headless: true,
+        ignoreHTTPSErrors: true,
+      })
+    } catch (error) {
+      console.error('Failed to launch with @sparticuz/chromium:', error)
+      throw new Error(`Chromium launch failed: ${error.message}`)
+    }
     
     console.log('Browser launched successfully with Puppeteer + @sparticuz/chromium')
 
