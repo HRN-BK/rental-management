@@ -58,7 +58,6 @@ export async function POST(request: NextRequest) {
       headless: chromium.headless || true,
       ignoreHTTPSErrors: true,
     })
-    })
 
     const page = await browser.newPage()
 
