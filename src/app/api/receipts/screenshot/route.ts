@@ -1,21 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import puppeteerCore from 'puppeteer-core'
-import chromium from '@sparticuz/chromium'
-
-// Dynamic import for local development
-const getPuppeteer = async () => {
-  if (process.env.NODE_ENV === 'production') {
-    return puppeteerCore
-  }
-  // For development, try to use regular puppeteer first
-  try {
-    const puppeteer = await import('puppeteer')
-    return puppeteer.default
-  } catch (error) {
-    console.log('Falling back to puppeteer-core for development')
-    return puppeteerCore
-  }
-}
+import { chromium } from 'playwright-chromium'
 
 export async function POST(request: NextRequest) {
   try {
@@ -31,112 +15,29 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    console.log('Starting Puppeteer screenshot...')
-
-    // Get puppeteer instance
-    const puppeteer = await getPuppeteer()
+    console.log('Starting Playwright screenshot...')
     
-    // Launch browser - different config for local vs production
-    const isProduction = process.env.NODE_ENV === 'production'
+    // Launch browser with Playwright
+    const browser = await chromium.launch({
+      headless: true,
+      args: [
+        '--no-sandbox',
+        '--disable-setuid-sandbox',
+        '--disable-dev-shm-usage',
+        '--disable-gpu',
+        '--disable-web-security',
+        '--single-process'
+      ]
+    })
     
-    let browser
-    
-    if (isProduction) {
-      console.log('Production environment detected, using chromium')
-      
-      try {
-        const executablePath = await chromium.executablePath()
-        console.log('Chromium executable path:', executablePath)
-        
-        browser = await puppeteerCore.launch({
-          args: [
-            '--no-sandbox',
-            '--disable-setuid-sandbox',
-            '--disable-dev-shm-usage',
-            '--disable-accelerated-2d-canvas',
-            '--no-first-run',
-            '--no-zygote',
-            '--disable-gpu',
-            '--single-process',
-            '--disable-web-security',
-            '--disable-features=VizDisplayCompositor'
-          ],
-          defaultViewport: { width: 1280, height: 720 },
-          executablePath,
-          headless: true,
-          ignoreHTTPSErrors: true,
-        })
-        console.log('Browser launched successfully with chromium')
-        
-      } catch (chromiumError) {
-        console.error('Chromium launch failed:', chromiumError)
-        
-        // Try with different executable paths
-        const possiblePaths = [
-          '/usr/bin/chromium-browser',
-          '/usr/bin/chromium',
-          '/usr/bin/google-chrome-stable',
-          '/usr/bin/google-chrome',
-          '/opt/google/chrome/chrome'
-        ]
-        
-        let browserLaunched = false
-        
-        for (const execPath of possiblePaths) {
-          try {
-            console.log(`Trying executable path: ${execPath}`)
-            browser = await puppeteerCore.launch({
-              args: [
-                '--no-sandbox',
-                '--disable-setuid-sandbox',
-                '--disable-dev-shm-usage',
-                '--disable-gpu',
-                '--single-process',
-                '--disable-web-security'
-              ],
-              executablePath: execPath,
-              headless: true,
-              ignoreHTTPSErrors: true,
-            })
-            console.log(`Browser launched successfully with: ${execPath}`)
-            browserLaunched = true
-            break
-          } catch (pathError) {
-            console.log(`Failed with ${execPath}:`, pathError.message)
-            continue
-          }
-        }
-        
-        if (!browserLaunched) {
-          throw new Error(`Failed to launch browser. Chromium error: ${chromiumError.message}. No fallback executables found.`)
-        }
-      }
-    } else {
-      // Development config
-      browser = await puppeteer.launch({
-        args: [
-          '--no-sandbox',
-          '--disable-setuid-sandbox',
-          '--disable-dev-shm-usage',
-          '--disable-accelerated-2d-canvas',
-          '--no-first-run',
-          '--no-zygote',
-          '--disable-gpu',
-          '--hide-scrollbars',
-          '--disable-web-security',
-        ],
-        headless: true,
-        ignoreHTTPSErrors: true,
-      })
-    }
+    console.log('Browser launched successfully with Playwright')
 
     const page = await browser.newPage()
 
     // Set viewport for high quality
-    await page.setViewport({
+    await page.setViewportSize({
       width: 800,
       height: 1200,
-      deviceScaleFactor: 2,
     })
 
     // Create complete HTML with styles
@@ -273,7 +174,7 @@ export async function POST(request: NextRequest) {
     `
 
     // Set content and wait for load
-    await page.setContent(fullHtml, { waitUntil: 'networkidle0' })
+    await page.setContent(fullHtml, { waitUntil: 'networkidle' })
 
     // Wait a bit more for rendering
     await new Promise(resolve => setTimeout(resolve, 1000))
@@ -291,7 +192,6 @@ export async function POST(request: NextRequest) {
           left: '20mm',
         },
         printBackground: true,
-        preferCSSPageSize: false,
       })
 
       result = {
@@ -300,6 +200,11 @@ export async function POST(request: NextRequest) {
       }
     } else {
       // Generate PNG screenshot
+      const containerHeight = await page.evaluate(() => {
+        const container = document.querySelector('.receipt-container')
+        return container ? container.scrollHeight + 40 : 1000
+      })
+      
       const screenshotBuffer = await page.screenshot({
         type: 'png',
         fullPage: false,
@@ -307,10 +212,7 @@ export async function POST(request: NextRequest) {
           x: 0,
           y: 0,
           width: 800,
-          height: await page.evaluate(() => {
-            const container = document.querySelector('.receipt-container')
-            return container ? container.scrollHeight + 40 : 1000
-          }),
+          height: containerHeight,
         },
       })
 
