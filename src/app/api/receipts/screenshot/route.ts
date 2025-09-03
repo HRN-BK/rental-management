@@ -42,30 +42,40 @@ export async function POST(request: NextRequest) {
     let browser
     
     if (isProduction) {
-      // Production config for Vercel - simpler approach
-      const executablePath = await chromium.executablePath()
-      
-      browser = await puppeteer.launch({
-        args: [
-          '--no-sandbox',
-          '--disable-setuid-sandbox', 
-          '--disable-dev-shm-usage',
-          '--disable-accelerated-2d-canvas',
-          '--no-first-run',
-          '--no-zygote',
-          '--disable-gpu',
-          '--hide-scrollbars',
-          '--disable-web-security',
-          '--disable-features=VizDisplayCompositor',
-          '--disable-extensions',
-          '--disable-plugins',
-          '--single-process'
-        ],
-        defaultViewport: { width: 1280, height: 720 },
-        executablePath,
-        headless: true,
-        ignoreHTTPSErrors: true,
-      })
+      // Production config for Vercel - simplified approach
+      try {
+        browser = await puppeteerCore.launch({
+          args: [
+            '--no-sandbox',
+            '--disable-setuid-sandbox',
+            '--disable-dev-shm-usage',
+            '--disable-accelerated-2d-canvas',
+            '--no-first-run',
+            '--no-zygote',
+            '--disable-gpu',
+            '--single-process',
+            '--disable-web-security'
+          ],
+          defaultViewport: { width: 1280, height: 720 },
+          executablePath: await chromium.executablePath(),
+          headless: true,
+          ignoreHTTPSErrors: true,
+        })
+      } catch (chromiumError) {
+        console.log('Chromium launch failed, trying with system Chrome:', chromiumError)
+        // Fallback to system Chrome if available
+        browser = await puppeteerCore.launch({
+          args: [
+            '--no-sandbox',
+            '--disable-setuid-sandbox',
+            '--disable-dev-shm-usage',
+            '--disable-gpu',
+            '--single-process'
+          ],
+          headless: true,
+          ignoreHTTPSErrors: true,
+        })
+      }
     } else {
       // Development config
       browser = await puppeteer.launch({

@@ -6,6 +6,10 @@
   "functions": {
     "src/app/api/**/*.ts": {
       "maxDuration": 30
+    },
+    "src/app/api/receipts/screenshot/route.ts": {
+      "maxDuration": 60,
+      "memory": 1024
     }
   },
   "headers": [
