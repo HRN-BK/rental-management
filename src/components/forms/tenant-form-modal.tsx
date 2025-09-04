@@ -230,7 +230,7 @@ export function TenantFormModal({
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>{trigger || defaultTrigger}</DialogTrigger>
-      <DialogContent className="sm:max-w-[800px] max-h-[95vh] overflow-y-auto mx-4">
+      <DialogContent className="sm:max-w-[700px] max-h-[90vh] sm:max-h-[85vh] overflow-y-auto w-[calc(100vw-2rem)] sm:w-full">
         <DialogHeader>
           <DialogTitle>
             {mode === 'edit'

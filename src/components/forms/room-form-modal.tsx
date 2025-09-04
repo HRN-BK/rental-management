@@ -174,7 +174,7 @@ const onSubmit = async (data: RoomFormData) => {
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>{trigger || defaultTrigger}</DialogTrigger>
-<DialogContent className="sm:max-w-[700px] max-h-[90vh] sm:max-h-[85vh] overflow-y-auto">
+<DialogContent className="sm:max-w-[700px] max-h-[90vh] sm:max-h-[85vh] overflow-y-auto w-[calc(100vw-2rem)] sm:w-full">
         <DialogHeader>
           <DialogTitle>
             {mode === 'edit' ? 'Chỉnh sửa phòng' : 'Thêm phòng mới'}
@@ -254,14 +254,14 @@ const onSubmit = async (data: RoomFormData) => {
                 />
               </div>
 
-              {/* Area and Rent */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              /* Area and Rent - Mobile friendly grid */
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
                 <FormField
                   control={form.control}
                   name="area_sqm"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Diện tích (m²)</FormLabel>
+                      <FormLabel>Diện tích (m²) <span className="text-gray-400 text-xs">(tuỳ chọn)</span></FormLabel>
                       <FormControl>
 <Input
                           type="number"
@@ -309,7 +309,7 @@ const onSubmit = async (data: RoomFormData) => {
                   name="deposit_amount"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Tiền cọc (VNĐ)</FormLabel>
+                      <FormLabel>Tiền cọc (VNĐ) <span className="text-gray-400 text-xs">(tuỳ chọn)</span></FormLabel>
                       <FormControl>
 <Input
                           type="number"

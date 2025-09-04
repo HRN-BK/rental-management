@@ -215,7 +215,8 @@ export function AssignTenantModal({
       onSuccess?.()
     } catch (error) {
       console.error('Error assigning tenant:', error)
-      toast.error('Không thể gán người thuê vào phòng. Vui lòng thử lại.')
+      const errorMessage = error instanceof Error ? error.message : 'Lỗi không xác định'
+      toast.error(`Không thể gán người thuê vào phòng: ${errorMessage}`)
     } finally {
       setIsSubmitting(false)
     }
@@ -224,6 +225,7 @@ export function AssignTenantModal({
   const handleCreateAndAssignTenant = async (data: NewTenantFormData) => {
     try {
       setIsSubmitting(true)
+      console.log('Creating tenant with data:', data)
 
       // First, create the tenant
       const tenantData: CreateTenantForm = {
@@ -257,7 +259,8 @@ export function AssignTenantModal({
       onSuccess?.()
     } catch (error) {
       console.error('Error creating and assigning tenant:', error)
-      toast.error('Không thể tạo và gán người thuê. Vui lòng thử lại.')
+      const errorMessage = error instanceof Error ? error.message : 'Lỗi không xác định'
+      toast.error(`Không thể tạo và gán người thuê: ${errorMessage}`)
     } finally {
       setIsSubmitting(false)
     }
@@ -287,7 +290,7 @@ export function AssignTenantModal({
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>{trigger || defaultTrigger}</DialogTrigger>
-      <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
+<DialogContent className="sm:max-w-[600px] max-h-[90vh] sm:max-h-[85vh] overflow-y-auto w-[calc(100vw-2rem)] sm:w-full">
         <DialogHeader>
           <DialogTitle>Thêm người thuê vào phòng</DialogTitle>
           <DialogDescription>
@@ -421,9 +424,6 @@ export function AssignTenantModal({
                             type="number"
                             placeholder="0"
                             {...field}
-                            onChange={e =>
-                              field.onChange(Number(e.target.value))
-                            }
                           />
                         </FormControl>
                         <FormMessage />
@@ -445,11 +445,7 @@ export function AssignTenantModal({
                             type="number"
                             placeholder="0"
                             {...field}
-                            onChange={e =>
-                              field.onChange(Number(e.target.value))
-                            }
                           />
-                        </FormControl>
                         <FormMessage />
                       </FormItem>
                     )}
