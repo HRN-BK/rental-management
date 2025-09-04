@@ -47,15 +47,22 @@ import type {
   CreateContractForm,
 } from '@/types/database'
 
+// Helper to preprocess string inputs to numbers
+const toNumber = (val: any) => {
+  if (val === '' || val === null || val === undefined) return undefined
+  const num = Number(val)
+  return isNaN(num) ? undefined : num
+}
+
 const contractFormSchema = z.object({
   tenant_id: z.string().min(1, 'Vui lòng chọn người thuê'),
   start_date: z.string().min(1, 'Ngày bắt đầu là bắt buộc'),
   end_date: z.string().optional(),
-  monthly_rent: z.number().min(0, 'Tiền thuê phải lớn hơn 0'),
-  deposit_amount: z
-    .number()
-    .min(0, 'Tiền cọc phải lớn hơn hoặc bằng 0')
-    .optional(),
+  monthly_rent: z.preprocess(toNumber, z.number().min(0, 'Tiền thuê phải lớn hơn 0')),
+  deposit_amount: z.preprocess(
+    toNumber,
+    z.number().min(0, 'Tiền cọc phải lớn hơn hoặc bằng 0').optional()
+  ),
 })
 
 const newTenantFormSchema = z.object({
@@ -96,11 +103,11 @@ const newTenantFormSchema = z.object({
   emergency_phone: z.string().optional(),
   start_date: z.string().min(1, 'Ngày bắt đầu là bắt buộc'),
   end_date: z.string().optional(),
-  monthly_rent: z.number().min(0, 'Tiền thuê phải lớn hơn 0'),
-  deposit_amount: z
-    .number()
-    .min(0, 'Tiền cọc phải lớn hơn hoặc bằng 0')
-    .optional(),
+  monthly_rent: z.preprocess(toNumber, z.number().min(0, 'Tiền thuê phải lớn hơn 0')),
+  deposit_amount: z.preprocess(
+    toNumber,
+    z.number().min(0, 'Tiền cọc phải lớn hơn hoặc bằng 0').optional()
+  ),
 })
 
 type ContractFormData = z.infer<typeof contractFormSchema>

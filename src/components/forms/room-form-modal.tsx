@@ -35,22 +35,25 @@ import { Plus, Edit3, Loader2, Building2 } from 'lucide-react'
 import { createRoom, updateRoom, getProperties } from '@/lib/database'
 import type { Room, Property, CreateRoomForm } from '@/types/database'
 
+// Helper to preprocess string inputs to numbers
+const toNumber = (val: any) => {
+  if (val === '' || val === null || val === undefined) return undefined
+  const num = Number(val)
+  return isNaN(num) ? undefined : num
+}
+
 const roomFormSchema = z.object({
   property_id: z.string().min(1, 'Vui lòng chọn nhà cho thuê'),
   room_number: z.string().min(1, 'Vui lòng nhập số phòng'),
   floor: z.string().optional(),
   area_sqm: z
-    .number()
-    .min(1, 'Diện tích phải lớn hơn 0')
-    .max(1000, 'Diện tích không được vượt quá 1000m²'),
+    .preprocess(toNumber, z.number().min(1, 'Diện tích phải lớn hơn 0').max(1000, 'Diện tích không được vượt quá 1000m²'))
+    .optional(),
   rent_amount: z
-    .number()
-    .min(0, 'Giá thuê không được âm')
-    .max(100000000, 'Giá thuê không được vượt quá 100 triệu VNĐ'),
+    .preprocess(toNumber, z.number().min(0, 'Giá thuê không được âm').max(100000000, 'Giá thuê không được vượt quá 100 triệu VNĐ')),
   deposit_amount: z
-    .number()
-    .min(0, 'Tiền cọc không được âm')
-    .max(1000000000, 'Tiền cọc không được vượt quá 1 tỷ VNĐ'),
+    .preprocess(toNumber, z.number().min(0, 'Tiền cọc không được âm').max(1000000000, 'Tiền cọc không được vượt quá 1 tỷ VNĐ'))
+    .optional(),
   description: z.string().optional(),
 })
 
@@ -76,15 +79,15 @@ export function RoomFormModal({
   const [properties, setProperties] = useState<Property[]>([])
   const [isLoadingProperties, setIsLoadingProperties] = useState(false)
 
-  const form = useForm<RoomFormData>({
+const form = useForm<RoomFormData>({
     resolver: zodResolver(roomFormSchema),
     defaultValues: {
       property_id: room?.property_id || propertyId || '',
       room_number: room?.room_number || '',
       floor: room?.floor || '',
-      area_sqm: room?.area_sqm || undefined,
-      rent_amount: room?.rent_amount || 0,
-      deposit_amount: room?.deposit_amount || undefined,
+      area_sqm: room?.area_sqm ?? undefined,
+      rent_amount: room?.rent_amount ?? 0,
+      deposit_amount: room?.deposit_amount ?? undefined,
       description: room?.description || '',
     },
   })
@@ -109,7 +112,7 @@ export function RoomFormModal({
     }
   }
 
-  const onSubmit = async (data: RoomFormData) => {
+const onSubmit = async (data: RoomFormData) => {
     try {
       setIsSubmitting(true)
 
@@ -117,9 +120,10 @@ export function RoomFormModal({
         property_id: data.property_id,
         room_number: data.room_number || '',
         floor: data.floor || undefined,
-        area_sqm: data.area_sqm || 1,
-        rent_amount: data.rent_amount || 0,
-        deposit_amount: data.deposit_amount || 0,
+        // allow optional area & deposit: omit if undefined
+        area_sqm: data.area_sqm ?? undefined,
+        rent_amount: data.rent_amount ?? 0,
+        deposit_amount: data.deposit_amount ?? undefined,
         description: data.description || undefined,
       }
 
@@ -170,7 +174,7 @@ export function RoomFormModal({
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>{trigger || defaultTrigger}</DialogTrigger>
-      <DialogContent className="sm:max-w-[700px]">
+<DialogContent className="sm:max-w-[700px] max-h-[90vh] sm:max-h-[85vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>
             {mode === 'edit' ? 'Chỉnh sửa phòng' : 'Thêm phòng mới'}
@@ -259,11 +263,11 @@ export function RoomFormModal({
                     <FormItem>
                       <FormLabel>Diện tích (m²)</FormLabel>
                       <FormControl>
-                        <Input
+<Input
                           type="number"
                           placeholder="25"
                           {...field}
-                          value={field.value || ''}
+                          value={field.value ?? ''}
                           onChange={e => {
                             const value = e.target.value
                             field.onChange(
@@ -284,11 +288,11 @@ export function RoomFormModal({
                     <FormItem>
                       <FormLabel>Giá thuê (VNĐ)</FormLabel>
                       <FormControl>
-                        <Input
+<Input
                           type="number"
                           placeholder="3500000"
                           {...field}
-                          value={field.value || ''}
+                          value={field.value ?? ''}
                           onChange={e => {
                             const value = e.target.value
                             field.onChange(value === '' ? 0 : Number(value))
@@ -307,14 +311,14 @@ export function RoomFormModal({
                     <FormItem>
                       <FormLabel>Tiền cọc (VNĐ)</FormLabel>
                       <FormControl>
-                        <Input
+<Input
                           type="number"
                           placeholder="7000000"
                           {...field}
-                          value={field.value || ''}
+                          value={field.value ?? ''}
                           onChange={e => {
                             const value = e.target.value
-                            field.onChange(value === '' ? 0 : Number(value))
+                            field.onChange(value === '' ? undefined : Number(value))
                           }}
                         />
                       </FormControl>

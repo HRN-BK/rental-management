@@ -44,13 +44,19 @@ import { createTenant, updateTenant } from '@/lib/database'
 import type { Tenant, CreateTenantForm } from '@/types/database'
 import { formatPrice, formatDate } from '@/lib/utils'
 
+// Helper to normalize optional string fields
+const normalizeString = (val: any) => {
+  if (typeof val !== 'string' || val.trim() === '') return undefined
+  return val.trim()
+}
+
 const tenantFormSchema = z.object({
   full_name: z
     .string()
     .min(1, 'Họ tên là bắt buộc')
     .max(100, 'Họ tên không được vượt quá 100 ký tự'),
   phone: z
-    .string()
+    .preprocess(normalizeString, z.string())
     .optional()
     .refine(
       val => {
@@ -63,7 +69,7 @@ const tenantFormSchema = z.object({
       }
     ),
   email: z
-    .string()
+    .preprocess(normalizeString, z.string())
     .optional()
     .refine(
       val => {
@@ -76,7 +82,7 @@ const tenantFormSchema = z.object({
       }
     ),
   id_number: z
-    .string()
+    .preprocess(normalizeString, z.string())
     .optional()
     .refine(
       val => {
@@ -88,12 +94,12 @@ const tenantFormSchema = z.object({
         message: 'CMND/CCCD phải có 9-12 số',
       }
     ),
-  birth_date: z.string().optional(),
-  address: z.string().optional(),
-  occupation: z.string().optional(),
-  emergency_contact: z.string().optional(),
+  birth_date: z.preprocess(normalizeString, z.string()).optional(),
+  address: z.preprocess(normalizeString, z.string()).optional(),
+  occupation: z.preprocess(normalizeString, z.string()).optional(),
+  emergency_contact: z.preprocess(normalizeString, z.string()).optional(),
   emergency_phone: z
-    .string()
+    .preprocess(normalizeString, z.string())
     .optional()
     .refine(
       val => {
@@ -105,7 +111,7 @@ const tenantFormSchema = z.object({
         message: 'Số điện thoại phải có 10-11 số',
       }
     ),
-  notes: z.string().optional(),
+  notes: z.preprocess(normalizeString, z.string()).optional(),
 })
 
 type TenantFormData = z.infer<typeof tenantFormSchema>
@@ -185,10 +191,11 @@ export function TenantFormModal({
       onSuccess?.()
     } catch (error) {
       console.error('Error saving tenant:', error)
+      const errorMessage = error instanceof Error ? error.message : 'Lỗi không xác định'
       toast.error(
         mode === 'edit'
-          ? 'Không thể cập nhật thông tin người thuê. Vui lòng thử lại.'
-          : 'Không thể thêm người thuê. Vui lòng thử lại.'
+          ? `Không thể cập nhật thông tin người thuê: ${errorMessage}`
+          : `Không thể thêm người thuê: ${errorMessage}`
       )
     } finally {
       setIsSubmitting(false)
