@@ -29,6 +29,7 @@ import {
 import type { TenantWithContract } from '@/types/database'
 import { formatPrice } from '@/lib/utils'
 import { useMobileGestures } from '@/hooks/use-mobile-gestures'
+import { TenantFormModal } from '@/components/forms/tenant-form-modal'
 
 interface MobileTenantsProps {
   tenants: TenantWithContract[]
@@ -40,6 +41,7 @@ interface MobileTenantsProps {
   onViewTenant: (id: string) => void
   getStatusCount: (status: string) => number
   onRefresh?: () => void
+  onTenantSuccess?: () => void
 }
 
 export function MobileTenants({
@@ -52,6 +54,7 @@ export function MobileTenants({
   onViewTenant,
   getStatusCount,
   onRefresh,
+  onTenantSuccess,
 }: MobileTenantsProps) {
   const [isFilterOpen, setIsFilterOpen] = useState(false)
 
@@ -96,10 +99,16 @@ export function MobileTenants({
               </p>
             </div>
           </div>
-          <Button size="sm" className="bg-blue-600 hover:bg-blue-700">
-            <Plus className="w-4 h-4 mr-2" />
-            Thêm
-          </Button>
+          <TenantFormModal 
+            mode="create" 
+            onSuccess={onTenantSuccess}
+            trigger={
+              <Button size="sm" className="bg-blue-600 hover:bg-blue-700">
+                <Plus className="w-4 h-4 mr-2" />
+                Thêm
+              </Button>
+            }
+          />
         </div>
 
         {/* Search and Filter */}
@@ -203,10 +212,16 @@ export function MobileTenants({
                 : 'Thêm người thuê đầu tiên để bắt đầu'}
             </p>
             {!searchTerm && statusFilter === 'all' && (
-              <Button className="bg-blue-600 hover:bg-blue-700">
-                <Plus className="w-4 h-4 mr-2" />
-                Thêm người thuê đầu tiên
-              </Button>
+              <TenantFormModal 
+                mode="create" 
+                onSuccess={onTenantSuccess}
+                trigger={
+                  <Button className="bg-blue-600 hover:bg-blue-700">
+                    <Plus className="w-4 h-4 mr-2" />
+                    Thêm người thuê đầu tiên
+                  </Button>
+                }
+              />
             )}
           </div>
         )}

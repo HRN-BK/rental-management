@@ -128,6 +128,7 @@ export default function TenantsPage() {
         onViewTenant={handleViewTenant}
         getStatusCount={getStatusCount}
         onRefresh={loadTenants}
+        onTenantSuccess={loadTenants}
       />
 
       {/* Desktop Version */}
