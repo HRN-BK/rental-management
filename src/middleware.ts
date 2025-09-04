@@ -42,7 +42,6 @@ export async function middleware(req: NextRequest) {
     '/tenants',
     '/invoices',
     '/receipts',
-    '/admin',
     '/profile',
   ]
 

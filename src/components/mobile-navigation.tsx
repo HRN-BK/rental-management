@@ -37,7 +37,6 @@ const mainNavItems = [
 const secondaryNavItems = [
   { href: '/invoices', label: 'Thu tiền', icon: Receipt },
   { href: '/rooms', label: 'Phòng', icon: Building2 },
-  { href: '/admin', label: 'Quản trị', icon: Menu },
 ]
 
 export function MobileNavigation() {

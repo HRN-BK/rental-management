@@ -46,7 +46,6 @@ const navItems = [
   { href: '/tenants', label: 'Người thuê', icon: Users },
   { href: '/invoices', label: 'Thu tiền', icon: Receipt },
   { href: '/receipts', label: 'Biên lai', icon: FileText },
-  { href: '/admin', label: 'Admin', icon: Settings },
 ]
 
 export function Navigation() {
