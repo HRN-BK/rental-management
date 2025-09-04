@@ -35,10 +35,16 @@ export function MobileDashboard({
   onRefresh,
 }: MobileDashboardProps) {
   const router = useRouter()
-  const { elementRef, isPulling, pullDistance, isRefreshing } =
-    useMobileGestures({
-      onPullToRefresh: onRefresh,
-    })
+  // Temporarily disable mobile gestures to fix scroll issue
+  const elementRef = { current: null }
+  const isPulling = false
+  const pullDistance = 0
+  const isRefreshing = false
+  
+  // const { elementRef, isPulling, pullDistance, isRefreshing } =
+  //   useMobileGestures({
+  //     onPullToRefresh: onRefresh,
+  //   })
 
   if (isLoading) {
     return <MobileDashboardSkeleton />

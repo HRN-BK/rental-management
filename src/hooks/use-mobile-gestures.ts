@@ -37,7 +37,8 @@ export function useMobileGestures({
       const touch = e.touches[0]
       startY = touch.clientY
       startX = touch.clientX
-      isAtTop = element.scrollTop === 0
+      // Chỉ đánh dấu isAtTop khi thực sự ở đầu trang (scroll position = 0)
+      isAtTop = element.scrollTop <= 2 // Cho phép sai số nhỏ
 
       touchStartRef.current = { x: startX, y: startY }
     }
@@ -53,15 +54,27 @@ export function useMobileGestures({
 
       touchMoveRef.current = { x: currentX, y: currentY }
 
-      // Pull to refresh logic
-      if (isAtTop && deltaY > 0 && Math.abs(deltaX) < 30 && onPullToRefresh) {
-        e.preventDefault()
-        setIsPulling(true)
-        setPullDistance(Math.min(deltaY * 0.5, 100))
+      // Nếu không ở đầu trang hoặc scroll lên, reset pull-to-refresh state
+      if (!isAtTop || deltaY < 0) {
+        if (isPulling) {
+          setIsPulling(false)
+          setPullDistance(0)
+        }
+        return // Cho phép scroll bình thường
       }
 
-      // Prevent default scroll when pulling to refresh
-      if (isPulling && deltaY > 0) {
+      // Pull to refresh logic - chỉ khi thực sự ở đầu trang và kéo xuống
+      if (isAtTop && deltaY > 10 && Math.abs(deltaX) < 30 && onPullToRefresh && element.scrollTop === 0) {
+        // Chỉ preventDefault khi thực sự muốn kích hoạt pull-to-refresh
+        if (deltaY > 20) { // Chỉ khi kéo xuống đủ xa
+          e.preventDefault()
+          setIsPulling(true)
+          setPullDistance(Math.min(deltaY * 0.5, 100))
+        }
+      }
+
+      // Prevent default scroll chỉ khi đang trong trạng thái pull-to-refresh thực sự
+      if (isPulling && deltaY > 0 && element.scrollTop === 0) {
         e.preventDefault()
       }
     }
