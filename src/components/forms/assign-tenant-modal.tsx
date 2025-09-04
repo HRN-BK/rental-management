@@ -446,6 +446,7 @@ export function AssignTenantModal({
                             placeholder="0"
                             {...field}
                           />
+                        </FormControl>
                         <FormMessage />
                       </FormItem>
                     )}
